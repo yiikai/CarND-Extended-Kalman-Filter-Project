@@ -31,4 +31,7 @@ public:
 
 };
 
+// min float number
+const float EPSILON = 0.0001;
+
 #endif /* TOOLS_H_ */

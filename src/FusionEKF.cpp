@@ -36,8 +36,8 @@ FusionEKF::FusionEKF() {
     * Finish initializing the FusionEKF.
     * Set the process and measurement noises
    */
-  
-
+  H_laser_ << 1, 0, 0, 0,
+             0,1,0,0;
 }
 
 /**
@@ -79,6 +79,11 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       ekf_.x_ = Eigen::VectorXd(4);
       ekf_.x_ << px,py,0,0;
     }
+    if(fabs(ekf_.x_(0)) < EPSILON and fabs(ekf_.x_(1)) < EPSILON )
+    {
+      ekf_.x_(0) = EPSILON;
+      ekf_.x_(1) = EPSILON;
+    }
     ekf_.P_ =  Eigen::MatrixXd(4,4);
     ekf_.P_ << 1,0,0,0,
                0,1,0,0,
@@ -103,7 +108,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
      * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
    */
   std::cout<<"prediction....."<<std::endl;
-  int dt = measurement_pack.timestamp_ - previous_timestamp_;
+  float dt = (measurement_pack.timestamp_ - previous_timestamp_)/1000000.0;
+  previous_timestamp_ = measurement_pack.timestamp_;
   ekf_.F_ = Eigen::MatrixXd(4,4);
   ekf_.F_ << 1,0,dt,0,
              0,1,0,dt,
@@ -112,16 +118,14 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   //define process noise covariance matrix Q.
   int noise_ax = 9;
   int noise_ay = 9;
-  int ax2 = noise_ax*noise_ax;
-  int ay2 = noise_ay*noise_ay;
   int dt2 = dt*dt;
   int dt3 = dt2*dt;
   int dt4 = dt3*dt;
   ekf_.Q_ = Eigen::MatrixXd(4,4);
-  ekf_.Q_ << dt4/4*ax2, 0 , dt3/2*ax2, 0,
-             0,dt4/4*ay2, 0, dt3/2*ay2,
-             dt3/2*ax2, 0 , dt2*ax2, 0,
-             0, dt3/2*ay2, 0, dt2*ay2;
+  ekf_.Q_ << dt4/4*noise_ax, 0 , dt3/2*noise_ax, 0,
+             0,dt4/4*noise_ay, 0, dt3/2*noise_ay,
+             dt3/2*noise_ax, 0 , dt2*noise_ax, 0,
+             0, dt3/2*noise_ay, 0, dt2*noise_ay;
 
 
   ekf_.Predict();
@@ -140,16 +144,14 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   if(MeasurementPackage::RADAR == measurement_pack.sensor_type_)
   {
     //jacobin matrix for non-linear calc
-    ekf_.H_ = Eigen::MatrixXd(3,4);
-    ekf_.H_ =  tools.CalculateJacobian(ekf_.x_);
+    Hj_ =  tools.CalculateJacobian(ekf_.x_);
+    ekf_.H_ = Hj_;
     ekf_.R_ = R_radar_;
     ekf_.UpdateEKF(measurement_pack.raw_measurements_);
   }
   else
   {
-    ekf_.H_ = Eigen::MatrixXd(2,4);
-    ekf_.H_ << 1,0,0,0,
-               0,1,0,0;
+    ekf_.H_ = H_laser_;
     ekf_.R_ = R_laser_;
     ekf_.Update(measurement_pack.raw_measurements_);
   }

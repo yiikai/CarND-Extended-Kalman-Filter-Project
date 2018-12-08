@@ -1,3 +1,4 @@
+#include "tools.h"
 #include "kalman_filter.h"
 #include <iostream>
 using namespace std;
@@ -6,7 +7,7 @@ using Eigen::VectorXd;
 
 // Please note that the Eigen library does not initialize 
 // VectorXd or MatrixXd objects with zeros upon creation.
-
+const float PI2 = 2 * M_PI;
 KalmanFilter::KalmanFilter() {}
 
 KalmanFilter::~KalmanFilter() {}
@@ -56,11 +57,23 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
 	//calc pred_z
 	float rho = sqrt(px*px + py*py);
 	float phi = atan2(py,px);
+  if(rho < EPSILON)
+    rho = EPSILON;
 	float rho_dot = (px*vx + py*vy) / sqrt(px*px + py*py);
 	Eigen::VectorXd z_pred(3);
 	z_pred << rho, phi, rho_dot;
 	
 	Eigen::VectorXd y = z - z_pred;
+  if(y(1) > M_PI)
+  {
+    y(1) -= PI2;
+  }
+
+  if(y(1) < -M_PI)
+  {
+    y(1) += PI2;
+  }
+
 	Eigen::MatrixXd S = H_*P_*H_.transpose() + R_;
 	Eigen::MatrixXd K = P_*H_.transpose()*S.inverse();
 	x_ = x_ + K * y;
