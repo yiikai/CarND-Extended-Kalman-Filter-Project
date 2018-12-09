@@ -36,8 +36,19 @@ FusionEKF::FusionEKF() {
     * Finish initializing the FusionEKF.
     * Set the process and measurement noises
    */
+  ekf_.P_ =  Eigen::MatrixXd(4,4);
+  ekf_.P_ << 1,0,0,0,
+    0,1,0,0,
+    0,0,1000,0,
+    0,0,0,1000;  
+
   H_laser_ << 1, 0, 0, 0,
-             0,1,0,0;
+           0,1,0,0;
+  ekf_.F_ = Eigen::MatrixXd(4,4);
+  ekf_.F_ << 1, 0, 1, 0,
+             0,1,0,1,
+             0,0,1,0,
+             0,0,0,1;
 }
 
 /**
@@ -84,12 +95,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       ekf_.x_(0) = EPSILON;
       ekf_.x_(1) = EPSILON;
     }
-    ekf_.P_ =  Eigen::MatrixXd(4,4);
-    ekf_.P_ << 1,0,0,0,
-               0,1,0,0,
-               0,0,1000,0,
-               0,0,0,1000;  
-	  previous_timestamp_ = measurement_pack.timestamp_;	
+    	  previous_timestamp_ = measurement_pack.timestamp_;	
     // done initializing, no need to predict or update
     is_initialized_ = true;
     std::cout<<"initialized..... over"<<std::endl;
@@ -110,11 +116,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   std::cout<<"prediction....."<<std::endl;
   float dt = (measurement_pack.timestamp_ - previous_timestamp_)/1000000.0;
   previous_timestamp_ = measurement_pack.timestamp_;
-  ekf_.F_ = Eigen::MatrixXd(4,4);
-  ekf_.F_ << 1,0,dt,0,
-             0,1,0,dt,
-             0,0,1,0,
-             0,0,0,1;
+  ekf_.F_(0,2) = dt;
+  ekf_.F_(1,3) = dt;
   //define process noise covariance matrix Q.
   int noise_ax = 9;
   int noise_ay = 9;
@@ -157,7 +160,5 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   }
 
   std::cout<<"update.....over"<<std::endl;
-  // print the output
-  cout << "x_ = " << ekf_.x_ << endl;
-  cout << "P_ = " << ekf_.P_ << endl;
+  return ;
 }
