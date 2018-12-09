@@ -119,11 +119,11 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   ekf_.F_(0,2) = dt;
   ekf_.F_(1,3) = dt;
   //define process noise covariance matrix Q.
-  int noise_ax = 9;
-  int noise_ay = 9;
-  int dt2 = dt*dt;
-  int dt3 = dt2*dt;
-  int dt4 = dt3*dt;
+  float noise_ax = 9;
+  float noise_ay = 9;
+  float dt2 = dt*dt;
+  float dt3 = dt2*dt;
+  float dt4 = dt3*dt;
   ekf_.Q_ = Eigen::MatrixXd(4,4);
   ekf_.Q_ << dt4/4*noise_ax, 0 , dt3/2*noise_ax, 0,
              0,dt4/4*noise_ay, 0, dt3/2*noise_ay,
